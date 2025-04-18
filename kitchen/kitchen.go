@@ -4,6 +4,7 @@ import (
 	"challenge/ledger"
 	"challenge/model"
 	"fmt"
+	"log"
 )
 
 type Kitchen struct {
@@ -64,7 +65,7 @@ func Place(order model.Order) {
 		discardCandidate := kitchen.orderTracker.DiscardCandidate()
 		storage, err := kitchen.orderTracker.Get(discardCandidate)
 		if err != nil {
-			fmt.Printf("Discard candidate not found on tracker: %+v", discardCandidate)
+			log.Printf("Discard candidate not found on tracker: %+v", discardCandidate)
 			continue // In the the discard candidate is not found, must continue the search
 		}
 
@@ -88,11 +89,11 @@ func Pickup(order model.Order) error {
 }
 
 func getIdealStorageByTemp(temp model.Temperature) *model.Storage {
-	if temp == model.Cold {
+	if kitchen.cooler.IsIdealTemp(temp) {
 		return kitchen.cooler
 	}
 
-	if temp == model.Hot {
+	if kitchen.heater.IsIdealTemp(temp) {
 		return kitchen.heater
 	}
 

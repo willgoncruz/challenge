@@ -65,6 +65,14 @@ func (s *Storage) Full() bool {
 	return s.count >= s.capacity
 }
 
+func (s *Storage) Empty() bool {
+	return s.count == 0
+}
+
 func (s *Storage) IsShelf() bool {
-	return s.temp == Room
+	return s.IsIdealTemp(Room)
+}
+
+func (s *Storage) IsIdealTemp(temp Temperature) bool {
+	return s.temp == temp
 }

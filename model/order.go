@@ -1,7 +1,5 @@
 package model
 
-import "time"
-
 type Temperature string
 
 const (
@@ -12,9 +10,17 @@ const (
 
 // Order is a json-friendly representation of an order.
 type Order struct {
-	ID        string         `json:"id"`        // order id
-	Name      string         `json:"name"`      // food name
-	Temp      Temperature    `json:"temp"`      // ideal temperature
-	Freshness int            `json:"freshness"` // freshness in seconds
-	TTL       *time.Duration `json:"ttl"`       // for control of storage duration
+	ID        string      `json:"id"`        // order id
+	Name      string      `json:"name"`      // food name
+	Temp      Temperature `json:"temp"`      // ideal temperature
+	Freshness int         `json:"freshness"` // freshness in seconds
+	TTL       int64       `json:"ttl"`       // for control of storage duration
+}
+
+func (o Order) FreshnessInSecondsByStorage(s *Storage) int {
+	if s.IsIdealTemp(o.Temp) {
+		return o.Freshness
+	}
+
+	return o.Freshness / 2 // Cut freshness in half if not ideal storage
 }

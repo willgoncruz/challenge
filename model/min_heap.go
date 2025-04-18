@@ -1,43 +1,37 @@
 package model
 
-type MinHeap []Order // Order min heap for deciding discard candidates
+type MinHeap []Order
 
 func (h MinHeap) Len() int {
 	return len(h)
 }
 
 func (h MinHeap) Less(i, j int) bool {
-	return h[i].TTL.Milliseconds() < h[j].TTL.Milliseconds()
+	return h[i].TTL < h[j].TTL
 }
 
 func (h MinHeap) Swap(i, j int) {
 	h[i], h[j] = h[j], h[i]
 }
 
-func (h *MinHeap) Push(x interface{}) {
-	*h = append(*h, x.(Order))
+func (h *MinHeap) Push(val interface{}) {
+	*h = append(*h, val.(Order))
 }
 
 func (h *MinHeap) Pop() interface{} {
-	old := *h
-	n := len(old)
-	x := old[n-1]
-	*h = old[:n-1]
-	return x
+	heapDerefrenced := *h
+
+	size := len(heapDerefrenced)
+	val := heapDerefrenced[size-1]
+	*h = heapDerefrenced[:size-1]
+
+	return val
 }
 
 func (h MinHeap) Find(order Order) int {
-	bottom := 0
-	top := h.Len() - 1
-
-	for bottom <= top {
-		mid := (bottom + top) / 2
-		if h[mid].ID == order.ID {
-			return mid
-		} else if h.Less(mid, bottom) {
-			top = mid
-		} else {
-			bottom = mid + 1
+	for i, o := range h {
+		if o.ID == order.ID {
+			return i
 		}
 	}
 

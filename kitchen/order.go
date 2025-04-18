@@ -4,6 +4,7 @@ import (
 	"challenge/model"
 	"container/heap"
 	"sync"
+	"time"
 )
 
 type OrderTracker struct {
@@ -22,6 +23,10 @@ func NewOrderTracker() *OrderTracker {
 
 func (o *OrderTracker) Track(order model.Order, storage *model.Storage) {
 	o.Untrack(order)
+
+	// Track the freshness of the order
+	freshnessTTL := time.Duration(order.FreshnessInSecondsByStorage(storage)) * time.Second
+	order.TTL = time.Now().UnixMicro() + freshnessTTL.Microseconds()
 
 	o.itemsByStorage.Swap(order.ID, storage)
 	if storage.IsShelf() { // Track all shelf items on heap
@@ -52,5 +57,5 @@ func (o *OrderTracker) Untrack(order model.Order) {
 }
 
 func (o *OrderTracker) DiscardCandidate() model.Order {
-	return o.discardQueue.Pop().(model.Order)
+	return heap.Pop(o.discardQueue).(model.Order)
 }
