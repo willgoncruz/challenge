@@ -1,6 +1,7 @@
 package model
 
 import (
+	"container/heap"
 	"sync"
 )
 
@@ -10,14 +11,19 @@ type Storage struct {
 	mtx      *sync.Mutex // Mutual exclusion
 	count    int         // maximum capacity for the storage
 	capacity int         // maximum capacity for the storage
+
+	discardQueue *MinHeap // discard candidate control on min heap
 }
 
 func NewStorage(temp Temperature, capacity int) *Storage {
+	discardQueue := &MinHeap{}
+	heap.Init(discardQueue)
 	return &Storage{
-		temp:     temp,
-		items:    sync.Map{},
-		capacity: capacity,
-		mtx:      &sync.Mutex{},
+		temp:         temp,
+		items:        sync.Map{},
+		capacity:     capacity,
+		mtx:          &sync.Mutex{},
+		discardQueue: discardQueue,
 	}
 }
 
@@ -32,6 +38,10 @@ func (s *Storage) Store(order Order) error {
 	s.items.Store(order.ID, order)
 	s.count += 1
 
+	// Control the discard queue data
+	order.FillTTL(s)
+	heap.Push(s.discardQueue, order)
+
 	return nil
 }
 
@@ -45,6 +55,10 @@ func (s *Storage) Pickup(order Order) error {
 	}
 
 	s.count -= 1
+	if pos := s.discardQueue.Find(order); pos != -1 {
+		heap.Remove(s.discardQueue, pos)
+	}
+
 	return nil
 }
 
@@ -54,6 +68,9 @@ func (s *Storage) Remove(order Order) {
 
 	s.items.Delete(order.ID)
 	s.count -= 1
+	if pos := s.discardQueue.Find(order); pos != -1 {
+		heap.Remove(s.discardQueue, pos)
+	}
 }
 
 // Apply a function to all storage items
@@ -75,4 +92,8 @@ func (s *Storage) IsShelf() bool {
 
 func (s *Storage) IsIdealTemp(temp Temperature) bool {
 	return s.temp == temp
+}
+
+func (s *Storage) DiscardCandidate() Order {
+	return heap.Pop(s.discardQueue).(Order)
 }

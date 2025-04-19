@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type Temperature string
 
 const (
@@ -23,4 +25,14 @@ func (o Order) FreshnessInSecondsByStorage(s *Storage) int {
 	}
 
 	return o.Freshness / 2 // Cut freshness in half if not ideal storage
+}
+
+func (o Order) FillTTL(s *Storage) {
+	if o.TTL != 0 { // Already filled time to discard
+		return
+	}
+
+	// Calculate the time to discard by freshness
+	freshnessTTL := time.Duration(o.FreshnessInSecondsByStorage(s)) * time.Second
+	o.TTL = time.Now().UnixMicro() + freshnessTTL.Microseconds()
 }
