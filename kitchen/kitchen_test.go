@@ -3,6 +3,7 @@ package kitchen
 import (
 	"challenge/model"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +11,8 @@ import (
 
 // Complex test with full storage, should get the closest to spoiling
 func Test_DiscardCandidateShouldBeClosestToSpoiled(t *testing.T) {
+	reset()
+
 	for i := range 6 { // fill cooler and heater
 		Place(CommonOrder(strconv.Itoa(i)+"-cold", model.Cold))
 		Place(CommonOrder(strconv.Itoa(2*i)+"-hot", model.Hot))
@@ -35,6 +38,46 @@ func Test_DiscardCandidateShouldBeClosestToSpoiled(t *testing.T) {
 	// Spoiler should not be in the shelf anymore
 	err := kitchen.shelf.Pickup(spoiled)
 	assert.Equal(t, model.ErrNotFound, err)
+}
+
+// Async place and pickup
+func Test_AsyncPlaceAndPickupOnKitchen(t *testing.T) {
+	reset()
+
+	orders := []model.Order{
+		CommonOrder("1", model.Cold),
+		CommonOrder("2", model.Cold),
+		CommonOrder("3", model.Cold),
+		CommonOrder("4", model.Cold),
+		CommonOrder("5", model.Cold),
+		CommonOrder("6", model.Cold),
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(orders))
+
+	for _, order := range orders {
+		go func() {
+			Place(order)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	assert.True(t, kitchen.cooler.Full()) // cooler should be full after waiting for every place to finish
+
+	wg = sync.WaitGroup{}
+	wg.Add(len(orders))
+
+	for _, order := range orders {
+		go func() {
+			Pickup(order)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	assert.True(t, kitchen.cooler.Empty()) // cooler should be empty after waiting for every pickup
 }
 
 func CommonOrder(id string, temp model.Temperature) model.Order {

@@ -15,14 +15,14 @@ type Storage struct {
 	discardQueue *MinHeap // discard candidate control on min heap
 }
 
-func NewStorage(temp Temperature, capacity int) *Storage {
+func NewStorage(mtx *sync.Mutex, temp Temperature, capacity int) *Storage {
 	discardQueue := &MinHeap{}
 	heap.Init(discardQueue)
 	return &Storage{
+		mtx:          mtx,
 		temp:         temp,
 		items:        sync.Map{},
 		capacity:     capacity,
-		mtx:          &sync.Mutex{},
 		discardQueue: discardQueue,
 	}
 }
@@ -84,10 +84,6 @@ func (s *Storage) Full() bool {
 
 func (s *Storage) Empty() bool {
 	return s.count == 0
-}
-
-func (s *Storage) IsShelf() bool {
-	return s.IsIdealTemp(Room)
 }
 
 func (s *Storage) IsIdealTemp(temp Temperature) bool {

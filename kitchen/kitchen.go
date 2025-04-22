@@ -3,6 +3,7 @@ package kitchen
 import (
 	"challenge/ledger"
 	"challenge/model"
+	"sync"
 )
 
 type Kitchen struct {
@@ -14,10 +15,15 @@ type Kitchen struct {
 var kitchen *Kitchen
 
 func init() {
+	reset()
+}
+
+func reset() {
+	mtx := &sync.Mutex{}
 	kitchen = &Kitchen{
-		cooler: model.NewStorage(model.Cold, 6),
-		heater: model.NewStorage(model.Hot, 6),
-		shelf:  model.NewStorage(model.Room, 12),
+		cooler: model.NewStorage(mtx, model.Cold, 6),
+		heater: model.NewStorage(mtx, model.Hot, 6),
+		shelf:  model.NewStorage(mtx, model.Room, 12),
 	}
 }
 
