@@ -7,9 +7,9 @@ import (
 )
 
 type Kitchen struct {
-	cooler *model.Storage
-	heater *model.Storage
-	shelf  *model.Storage
+	cooler model.Storage
+	heater model.Storage
+	shelf  model.Storage
 }
 
 var kitchen *Kitchen
@@ -23,7 +23,7 @@ func reset() {
 	kitchen = &Kitchen{
 		cooler: model.NewStorage(mtx, model.Cold, 6),
 		heater: model.NewStorage(mtx, model.Hot, 6),
-		shelf:  model.NewStorage(mtx, model.Room, 12),
+		shelf:  model.NewShelfStorage(mtx, 12),
 	}
 }
 
@@ -59,7 +59,7 @@ func Place(order model.Order) {
 	}
 
 	// Last resort, must discard something
-	discardCandidate := kitchen.shelf.DiscardCandidate()
+	discardCandidate := kitchen.shelf.(model.ShelfStorage).DiscardCandidate()
 
 	kitchen.shelf.Remove(discardCandidate)
 	ledger.Audit(discardCandidate, model.Discard) // audit the discard move
@@ -78,7 +78,7 @@ func Pickup(order model.Order) error {
 	return getIdealStorageByTemp(order.Temp).Pickup(order)
 }
 
-func getIdealStorageByTemp(temp model.Temperature) *model.Storage {
+func getIdealStorageByTemp(temp model.Temperature) model.Storage {
 	if kitchen.cooler.IsIdealTemp(temp) {
 		return kitchen.cooler
 	}

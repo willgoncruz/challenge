@@ -1,33 +1,37 @@
 package model
 
 import (
-	"container/heap"
 	"sync"
 )
 
-type Storage struct {
+type Storage interface {
+	Store(order Order) error
+	Pickup(order Order) error
+	Remove(order Order)
+	Apply(f func(key any, value any) bool)
+	Full() bool
+	Empty() bool
+	IsIdealTemp(temp Temperature) bool
+}
+
+type basicStorage struct {
 	temp     Temperature // temperature of the Storage
 	items    sync.Map    // items stored inside sync map
 	mtx      *sync.Mutex // Mutual exclusion
 	count    int         // maximum capacity for the storage
 	capacity int         // maximum capacity for the storage
-
-	discardQueue *MinHeap // discard candidate control on min heap
 }
 
-func NewStorage(mtx *sync.Mutex, temp Temperature, capacity int) *Storage {
-	discardQueue := &MinHeap{}
-	heap.Init(discardQueue)
-	return &Storage{
-		mtx:          mtx,
-		temp:         temp,
-		items:        sync.Map{},
-		capacity:     capacity,
-		discardQueue: discardQueue,
+func NewStorage(mtx *sync.Mutex, temp Temperature, capacity int) Storage {
+	return &basicStorage{
+		mtx:      mtx,
+		temp:     temp,
+		items:    sync.Map{},
+		capacity: capacity,
 	}
 }
 
-func (s *Storage) Store(order Order) error {
+func (s *basicStorage) Store(order Order) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
@@ -38,14 +42,10 @@ func (s *Storage) Store(order Order) error {
 	s.items.Store(order.ID, order)
 	s.count += 1
 
-	// Control the discard queue data
-	order.FillTTL(s)
-	heap.Push(s.discardQueue, order)
-
 	return nil
 }
 
-func (s *Storage) Pickup(order Order) error {
+func (s *basicStorage) Pickup(order Order) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
@@ -55,41 +55,30 @@ func (s *Storage) Pickup(order Order) error {
 	}
 
 	s.count -= 1
-	if pos := s.discardQueue.Find(order); pos != -1 {
-		heap.Remove(s.discardQueue, pos)
-	}
-
 	return nil
 }
 
-func (s *Storage) Remove(order Order) {
+func (s *basicStorage) Remove(order Order) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
 	s.items.Delete(order.ID)
 	s.count -= 1
-	if pos := s.discardQueue.Find(order); pos != -1 {
-		heap.Remove(s.discardQueue, pos)
-	}
 }
 
 // Apply a function to all storage items
-func (s *Storage) Apply(f func(key any, value any) bool) {
+func (s *basicStorage) Apply(f func(key any, value any) bool) {
 	s.items.Range(f)
 }
 
-func (s *Storage) Full() bool {
+func (s *basicStorage) Full() bool {
 	return s.count >= s.capacity
 }
 
-func (s *Storage) Empty() bool {
+func (s *basicStorage) Empty() bool {
 	return s.count == 0
 }
 
-func (s *Storage) IsIdealTemp(temp Temperature) bool {
+func (s *basicStorage) IsIdealTemp(temp Temperature) bool {
 	return s.temp == temp
-}
-
-func (s *Storage) DiscardCandidate() Order {
-	return heap.Pop(s.discardQueue).(Order)
 }

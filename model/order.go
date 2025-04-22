@@ -19,7 +19,7 @@ type Order struct {
 	TTL       int64       `json:"ttl"`       // for control of storage duration
 }
 
-func (o Order) FreshnessInSecondsByStorage(s *Storage) int {
+func (o Order) FreshnessInSecondsByStorage(s Storage) int {
 	if s.IsIdealTemp(o.Temp) {
 		return o.Freshness
 	}
@@ -27,7 +27,7 @@ func (o Order) FreshnessInSecondsByStorage(s *Storage) int {
 	return o.Freshness / 2 // Cut freshness in half if not ideal storage
 }
 
-func (o Order) FillTTL(s *Storage) {
+func (o Order) FillTTL(s Storage) {
 	if o.TTL != 0 { // Already filled time to discard
 		return
 	}
