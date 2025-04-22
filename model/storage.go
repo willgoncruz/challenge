@@ -7,7 +7,7 @@ import (
 type Storage interface {
 	Store(order Order) error
 	Pickup(order Order) error
-	Remove(order Order)
+	Replace(old, new Order)
 	Apply(f func(key any, value any) bool)
 	Full() bool
 	Empty() bool
@@ -58,12 +58,12 @@ func (s *basicStorage) Pickup(order Order) error {
 	return nil
 }
 
-func (s *basicStorage) Remove(order Order) {
+func (s *basicStorage) Replace(oldOrder, newOrder Order) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
-	s.items.Delete(order.ID)
-	s.count -= 1
+	s.items.Delete(oldOrder.ID)
+	s.items.Store(newOrder.ID, newOrder)
 }
 
 // Apply a function to all storage items

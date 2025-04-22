@@ -80,6 +80,28 @@ func Test_AsyncPlaceAndPickupOnKitchen(t *testing.T) {
 	assert.True(t, kitchen.cooler.Empty()) // cooler should be empty after waiting for every pickup
 }
 
+// Shelf move action
+func Test_ShouldMoveItemsFromShelfToHeaterAndCooler(t *testing.T) {
+	reset()
+
+	for i := range 12 { // setup shelf
+		kitchen.shelf.Store(CommonOrder(strconv.Itoa(i)+"-cool", model.Cold))
+		kitchen.heater.Store(CommonOrder(strconv.Itoa(i)+"-hot", model.Hot))
+	}
+
+	assert.True(t, kitchen.cooler.Empty())
+
+	lastOrder := CommonOrder("one-more-hot", model.Hot)
+	Place(lastOrder)
+
+	assert.True(t, kitchen.shelf.Full())
+	assert.True(t, kitchen.heater.Full())
+	assert.False(t, kitchen.cooler.Empty())
+
+	err := kitchen.shelf.Pickup(lastOrder)
+	assert.Nil(t, err)
+}
+
 func CommonOrder(id string, temp model.Temperature) model.Order {
 	return model.Order{
 		ID:        id,

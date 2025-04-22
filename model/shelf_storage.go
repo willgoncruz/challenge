@@ -66,15 +66,17 @@ func (s *shelfStorage) Pickup(order Order) error {
 	return nil
 }
 
-func (s *shelfStorage) Remove(order Order) {
+func (s *shelfStorage) Replace(oldOrder, newOrder Order) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
-	s.items.Delete(order.ID)
-	s.count -= 1
-	if pos := s.discardQueue.Find(order); pos != -1 {
+	s.items.Delete(oldOrder.ID)
+	if pos := s.discardQueue.Find(oldOrder); pos != -1 {
 		heap.Remove(s.discardQueue, pos)
 	}
+
+	s.items.Store(newOrder.ID, newOrder)
+	heap.Push(s.discardQueue, newOrder)
 }
 
 // Apply a function to all storage items

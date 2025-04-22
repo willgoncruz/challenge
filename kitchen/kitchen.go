@@ -44,8 +44,8 @@ func Place(order model.Order) {
 	kitchen.shelf.Apply(func(key any, value any) bool {
 		shelfOrder := value.(model.Order)
 		idealStorage := getIdealStorageByTemp(shelfOrder.Temp)
-		if idealStorage.Store(order) == nil { // Could move something from the shelf to ideal storage
-			kitchen.shelf.Remove(order)
+		if idealStorage.Store(shelfOrder) == nil { // Could move something from the shelf to ideal storage
+			kitchen.shelf.Replace(shelfOrder, order)
 			ledger.Audit(shelfOrder, model.Move) // audit the move for solution
 			moved = true
 			return false
@@ -61,10 +61,8 @@ func Place(order model.Order) {
 	// Last resort, must discard something
 	discardCandidate := kitchen.shelf.(model.ShelfStorage).DiscardCandidate()
 
-	kitchen.shelf.Remove(discardCandidate)
-	ledger.Audit(discardCandidate, model.Discard) // audit the discard move
-
-	kitchen.shelf.Store(order) // add placed order to shelf after all
+	kitchen.shelf.Replace(discardCandidate, order) // replace discard with placed order
+	ledger.Audit(discardCandidate, model.Discard)  // audit the discard move
 }
 
 func Pickup(order model.Order) error {
