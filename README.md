@@ -31,6 +31,8 @@ At first, I tried sharing the same `sync.Mutex` pointer on all the `Storage` imp
 
 Therefore, the final solution was to use the lock on the _Place_ and _Pickup_ functions of the kitchen, for a guaranteed consistent state of every action. Futhermore, each `Storage` uses the hash map implementation called `sync.Map`, which is for thread safe read and write to the map in Golang.
 
+As a bonus, I used a _channel_ async writing to the ledger, showing the potencial for more parallel processing in this scenario.
+
 ## Discard criteria
 
 For starters, I decided on a metric to calculate for how long a given order stays fresh, based on the `freshness (sec)` value.
