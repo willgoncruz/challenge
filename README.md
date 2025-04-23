@@ -27,7 +27,9 @@ $ go run test ./...
 The concurrency treatment on this solution is based on Golang implementation of _Mutual exclusion_.
 Defined by `sync.Mutex`, every time this variable is locked it prevents other threads from accessing the same block of code simultaneously, only when unlocked can a new thread continue the execution.
 
-All of the `Storage` implementations in the solution share the same `sync.Mutex` to keep the state consistent on every place/pickup request between all of them (cooler, heater and shelf).
+At first, I tried sharing the same `sync.Mutex` pointer on all the `Storage` implementations. That didn't turn out well, because the _Move_ action would require locking two Storages at the same time, which wouldn't work as it is mutual exclusion.
+
+Therefore, the final solution was to use the lock on the _Place_ and _Pickup_ functions of the kitchen, for a guaranteed consistent state of every action. Futhermore, each `Storage` uses the hash map implementation called `sync.Map`, which is for thread safe read and write to the map in Golang.
 
 ## Discard criteria
 
@@ -43,4 +45,3 @@ This value is assigned to the `TTL` variable in the `Order` struct the first tim
 Then, by sorting the orders from least to greatest based on the `TTL`, the first one will always be the closest to spoiling (If not already).
 
 For that purpose, we can use a _Priority Queue_ (a.k.a MinHeap) to keep track of orders as they are stored. This data structure can track new orders and retrieve the minimal very efficiently, since we have a defined value of `TTL` for comparisons of lesser/greater.
-

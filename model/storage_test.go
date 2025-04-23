@@ -1,14 +1,13 @@
 package model
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_StorageStorageAndPickup(t *testing.T) {
-	storage := NewStorage(&sync.Mutex{}, Cold, 6)
+	storage := NewStorage(Cold, 6)
 
 	err := storage.Store(Order{ID: "1"})
 	assert.Nil(t, err)
@@ -19,7 +18,7 @@ func Test_StorageStorageAndPickup(t *testing.T) {
 }
 
 func Test_StorageFullReturnErrorOnNewStore(t *testing.T) {
-	storage := NewStorage(&sync.Mutex{}, Hot, 1)
+	storage := NewStorage(Hot, 1)
 
 	_ = storage.Store(Order{ID: "1"})
 	err := storage.Store(Order{ID: "1"})

@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"challenge/kitchen"
-	"challenge/ledger"
 	"challenge/model"
 	"log"
 	"sync"
@@ -24,11 +23,11 @@ func NewPlaceScheduler(rate *time.Duration, pickupScheduler *PickupScheduler) *P
 func (p *PlaceScheduler) Process(orders []model.Order, wg *sync.WaitGroup) {
 	for _, order := range orders {
 		kitchen.Place(order)
-		ledger.Audit(order, model.Place)
 		log.Printf("Placed order: %+v", order)
 
 		// Async start the pickup process after placing order
-		go p.pickupScheduler.Process([]model.Order{order}, wg)
+		wg.Add(1)
+		go p.pickupScheduler.Process(order, wg)
 
 		time.Sleep(*p.rate)
 	}

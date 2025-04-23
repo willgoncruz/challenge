@@ -10,6 +10,8 @@ type Kitchen struct {
 	cooler model.Storage
 	heater model.Storage
 	shelf  model.Storage
+
+	mtx *sync.Mutex // Mutual exclusion for concurrency handling
 }
 
 var kitchen *Kitchen
@@ -21,21 +23,27 @@ func init() {
 func reset() {
 	mtx := &sync.Mutex{}
 	kitchen = &Kitchen{
-		cooler: model.NewStorage(mtx, model.Cold, 6),
-		heater: model.NewStorage(mtx, model.Hot, 6),
-		shelf:  model.NewShelfStorage(mtx, 12),
+		mtx:    mtx,
+		cooler: model.NewStorage(model.Cold, 6),
+		heater: model.NewStorage(model.Hot, 6),
+		shelf:  model.NewShelfStorage(12),
 	}
 }
 
 func Place(order model.Order) {
+	kitchen.mtx.Lock()
+	defer kitchen.mtx.Unlock()
+
 	// Decision put the order on the ideal storage
 	idealStorage := getIdealStorageByTemp(order.Temp)
 	if idealStorage.Store(order) == nil {
+		ledger.Audit(order, model.Place)
 		return // Was added to ideal storage
 	}
 
 	// Otherwise, must put order on the shelf first
 	if kitchen.shelf.Store(order) == nil {
+		ledger.Audit(order, model.Place)
 		return // Was added on shelf
 	}
 
@@ -46,7 +54,8 @@ func Place(order model.Order) {
 		idealStorage := getIdealStorageByTemp(shelfOrder.Temp)
 		if idealStorage.Store(shelfOrder) == nil { // Could move something from the shelf to ideal storage
 			kitchen.shelf.Replace(shelfOrder, order)
-			ledger.Audit(shelfOrder, model.Move) // audit the move for solution
+			ledger.Audit(shelfOrder, model.Move) // audit the move of shelf order and place of new order
+			ledger.Audit(order, model.Place)
 			moved = true
 			return false
 		}
@@ -62,18 +71,28 @@ func Place(order model.Order) {
 	discardCandidate := kitchen.shelf.(model.ShelfStorage).DiscardCandidate()
 
 	kitchen.shelf.Replace(discardCandidate, order) // replace discard with placed order
-	ledger.Audit(discardCandidate, model.Discard)  // audit the discard move
+	ledger.Audit(discardCandidate, model.Discard)  // audit the discard move and store of new order
+	ledger.Audit(order, model.Place)
 }
 
 func Pickup(order model.Order) error {
+	kitchen.mtx.Lock()
+	defer kitchen.mtx.Unlock()
+
 	// First pickup on shelf
 	err := kitchen.shelf.Pickup(order)
 	if err == nil {
+		ledger.Audit(order, model.Pickup)
 		return nil
 	}
 
 	// Then on ideal storage
-	return getIdealStorageByTemp(order.Temp).Pickup(order)
+	err = getIdealStorageByTemp(order.Temp).Pickup(order)
+	if err == nil {
+		ledger.Audit(order, model.Pickup)
+	}
+
+	return err
 }
 
 func getIdealStorageByTemp(temp model.Temperature) model.Storage {

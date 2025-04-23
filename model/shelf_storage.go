@@ -12,18 +12,16 @@ type ShelfStorage interface {
 type shelfStorage struct {
 	temp     Temperature // temperature of the Storage
 	items    sync.Map    // items stored inside sync map
-	mtx      *sync.Mutex // Mutual exclusion
 	count    int         // maximum capacity for the storage
 	capacity int         // maximum capacity for the storage
 
 	discardQueue *MinHeap // discard candidate control on min heap
 }
 
-func NewShelfStorage(mtx *sync.Mutex, capacity int) Storage {
+func NewShelfStorage(capacity int) Storage {
 	discardQueue := &MinHeap{}
 	heap.Init(discardQueue)
 	return &shelfStorage{
-		mtx:          mtx,
 		temp:         Room,
 		items:        sync.Map{},
 		capacity:     capacity,
@@ -32,9 +30,6 @@ func NewShelfStorage(mtx *sync.Mutex, capacity int) Storage {
 }
 
 func (s *shelfStorage) Store(order Order) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
 	if s.Full() {
 		return ErrFull
 	}
@@ -50,9 +45,6 @@ func (s *shelfStorage) Store(order Order) error {
 }
 
 func (s *shelfStorage) Pickup(order Order) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
 	_, ok := s.items.Load(order.ID)
 	if !ok {
 		return ErrNotFound
@@ -67,9 +59,6 @@ func (s *shelfStorage) Pickup(order Order) error {
 }
 
 func (s *shelfStorage) Replace(oldOrder, newOrder Order) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
 	s.items.Delete(oldOrder.ID)
 	if pos := s.discardQueue.Find(oldOrder); pos != -1 {
 		heap.Remove(s.discardQueue, pos)
