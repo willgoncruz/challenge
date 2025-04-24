@@ -11,14 +11,14 @@ type ledger struct {
 }
 
 var book *ledger
-var audit chan (model.Action)
+var auditActionChannel chan (model.Action)
 
 func init() {
 	reset()
 }
 
 func reset() {
-	audit = make(chan model.Action)
+	auditActionChannel = make(chan model.Action)
 	book = &ledger{
 		actions: []model.Action{},
 	}
@@ -27,7 +27,7 @@ func reset() {
 
 func writeLoop() {
 	go func() { // Async write to ledger, in the order of channel writing
-		for newAction := range audit {
+		for newAction := range auditActionChannel {
 			book.actions = append(book.actions, newAction)
 		}
 	}()
@@ -41,7 +41,7 @@ func Audit(order model.Order, action model.ActionType) {
 		Timestamp: time.Now().UnixMicro(),
 	}
 
-	audit <- newAction
+	auditActionChannel <- newAction
 }
 
 // Return all the saved actions

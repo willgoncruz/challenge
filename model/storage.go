@@ -4,6 +4,7 @@ import (
 	"sync"
 )
 
+// interface to define all storage functionality
 type Storage interface {
 	Store(order Order) error
 	Pickup(order Order) error

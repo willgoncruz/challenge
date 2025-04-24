@@ -9,6 +9,7 @@ type ShelfStorage interface {
 	DiscardCandidate() Order
 }
 
+// ShelfStorage is a more complex storage as it keeps track of discard heap
 type shelfStorage struct {
 	temp     Temperature // temperature of the Storage
 	items    sync.Map    // items stored inside sync map
