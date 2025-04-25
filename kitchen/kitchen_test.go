@@ -1,10 +1,12 @@
 package kitchen
 
 import (
+	"challenge/ledger"
 	"challenge/model"
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -100,6 +102,31 @@ func Test_ShouldMoveItemsFromShelfToHeaterAndCooler(t *testing.T) {
 
 	err := kitchen.shelf.Pickup(lastOrder)
 	assert.Nil(t, err)
+}
+
+// Dicard test
+func Test_ShouldDiscardEverythingInAllStorages(t *testing.T) {
+	reset()
+	ledger.Clear()
+
+	for i := range 12 { // setup shelf
+		kitchen.cooler.Store(CommonOrder(strconv.Itoa(i)+"-cool", model.Cold))
+		kitchen.heater.Store(CommonOrder(strconv.Itoa(i)+"-hot", model.Hot))
+		kitchen.shelf.Store(CommonOrder(strconv.Itoa(i)+"-room", model.Room))
+	}
+
+	assert.True(t, kitchen.cooler.Full())
+	assert.True(t, kitchen.heater.Full())
+	assert.True(t, kitchen.shelf.Full())
+
+	DiscardLeftovers()
+	time.Sleep(time.Millisecond)
+
+	audits := ledger.Retrieve()
+	assert.Equal(t, 24, len(audits))
+	for _, audit := range audits {
+		assert.Equal(t, model.Discard, audit.Action)
+	}
 }
 
 func CommonOrder(id string, temp model.Temperature) model.Order {

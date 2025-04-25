@@ -2,6 +2,7 @@ package main
 
 import (
 	css "challenge/client"
+	"challenge/kitchen"
 	"challenge/ledger"
 	"challenge/scheduler"
 	"flag"
@@ -51,6 +52,9 @@ func main() {
 
 	wg.Wait()
 	// ------------------------------------------------------------------------
+
+	// Discard leftovers after waig group finish
+	kitchen.DiscardLeftovers()
 
 	result, err := client.Solve(id, *rate, *min, *max, ledger.Retrieve())
 	if err != nil {

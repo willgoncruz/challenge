@@ -33,6 +33,10 @@ func writeLoop() {
 	}()
 }
 
+func Clear() {
+	book.actions = book.actions[:0]
+}
+
 func Audit(order model.Order, action model.ActionType) {
 	log.Printf("New Audit Action: %+v %s", order, action)
 	newAction := model.Action{

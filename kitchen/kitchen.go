@@ -75,6 +75,19 @@ func Place(order model.Order) {
 	ledger.Audit(order, model.Place)
 }
 
+func DiscardLeftovers() {
+	// Define a discard function applying in all storages
+	discardFunc := func(key any, value any) bool {
+		order := value.(model.Order)
+		ledger.Audit(order, model.Discard)
+		return true
+	}
+
+	kitchen.cooler.Apply(discardFunc)
+	kitchen.heater.Apply(discardFunc)
+	kitchen.shelf.Apply(discardFunc)
+}
+
 func Pickup(order model.Order) error {
 	kitchen.mtx.Lock()
 	defer kitchen.mtx.Unlock()
